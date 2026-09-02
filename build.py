@@ -21,6 +21,9 @@ BASE = f"https://{DOMAIN}"
 RATESCOUT = "https://ratescout.ru/?utm_source=mymany&utm_medium=cta"
 CG = "https://api.coingecko.com/api/v3"
 
+# Подтверждение прав в поисковых панелях (мета-теги). Google добавим, когда пришлёт свой код.
+VERIFY = '<meta name="yandex-verification" content="20a164d4865dd35c" />'
+
 # Аналитика — те же счётчики, что на ratescout (Яндекс.Метрика + Google Analytics).
 # 🔴 my-many.ru нужно добавить в список доменов счётчика Метрики 111586112, иначе визиты не зачтутся.
 ANALYTICS = """<!-- Yandex.Metrika -->
@@ -160,6 +163,7 @@ def main():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{VERIFY}
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{BASE}/">
