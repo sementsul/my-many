@@ -142,6 +142,34 @@ def main():
     fng_block = (f'<div class="stat"><div class="stat-v">{esc(fng_val)} · {esc(fng_txt)}</div>'
                  f'<div class="stat-l">Индекс страха и жадности</div></div>') if fng_val else ""
 
+    # Уникальный FAQ (не дубль ratescout): объясняет метрики монитора + связывает с обменом.
+    faq = [
+        ("Что показывает капитализация крипторынка?",
+         "Это суммарная стоимость всех криптовалют. Рост капитализации обычно означает приток денег в рынок, "
+         "падение — отток. Резкие изменения за 24 часа — сигнал повышенной волатильности, когда курсы обмена «гуляют» сильнее."),
+        ("Что такое доминация BTC и зачем за ней следить?",
+         "Доминация биткоина — его доля в общей капитализации рынка. Когда она растёт, деньги перетекают из альткоинов "
+         "в BTC (рынок осторожничает); когда падает — растёт интерес к альткоинам. Это помогает понять настроение рынка перед обменом."),
+        ("Как читать индекс страха и жадности?",
+         "Индекс от 0 до 100 отражает эмоции рынка: низкие значения (страх) часто совпадают с локальными «дном», высокие "
+         "(жадность) — с перегревом. Это не сигнал к сделке, а фон: в «жадности» спреды и курсы бывают менее выгодными."),
+        ("Чем этот монитор отличается от RateScout?",
+         "MyMany показывает, ЧТО происходит на рынке (цены, капитализация, настроения). RateScout показывает, ГДЕ выгоднее "
+         "обменять — это мониторинг обменных пунктов BestChange по сотням направлений с реальными курсами и резервами."),
+        ("Как найти выгодный курс обмена криптовалюты?",
+         "Сравнивать курсы нескольких обменников одновременно, а не идти в первый попавшийся. Именно это делает RateScout: "
+         "собирает курсы, резервы и рейтинги обменных пунктов в одном месте, чтобы выбрать лучшее направление."),
+        ("Что важно проверить перед обменом?",
+         "Актуальный курс и резерв обменника, его рейтинг и отзывы, а для криптоадреса — базовую AML-проверку (нет ли адреса "
+         "в санкционных списках). Инструменты для этого есть на RateScout."),
+    ]
+    faq_html = "".join(f'<details><summary>{esc(q)}</summary><p>{esc(a)}</p></details>' for q, a in faq)
+    faq_schema = json.dumps({
+        "@context": "https://schema.org", "@type": "FAQPage",
+        "mainEntity": [{"@type": "Question", "name": q,
+                        "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq],
+    }, ensure_ascii=False)
+
     schema = json.dumps({
         "@context": "https://schema.org", "@type": "Dataset",
         "name": "Монитор крипторынка MyMany",
@@ -174,6 +202,7 @@ def main():
 <meta property="og:site_name" content="MyMany">
 <script type="application/ld+json">{website}</script>
 <script type="application/ld+json">{schema}</script>
+<script type="application/ld+json">{faq_schema}</script>
 {ANALYTICS}
 <style>
 :root{{color-scheme:dark}}
@@ -204,6 +233,16 @@ thead th{{color:#9aa7b4;font-weight:600}}
 border-radius:12px;text-align:center}}
 .cta a{{display:inline-block;margin-top:10px;background:#2ea043;color:#fff;padding:12px 26px;border-radius:8px;
 text-decoration:none;font-weight:600}}
+.why{{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px 20px;margin:28px 0}}
+.why h2{{margin-top:0;border:0}}
+.why p{{color:#c3ccd6;margin:.5em 0}}
+.why a.more{{color:#2ea043;font-weight:600;text-decoration:none}}
+details{{background:#12171e;border:1px solid #21262d;border-radius:8px;padding:0 14px;margin:8px 0}}
+details summary{{cursor:pointer;padding:12px 0;font-weight:600;list-style:none}}
+details summary::-webkit-details-marker{{display:none}}
+details summary::before{{content:"+ ";color:#2ea043}}
+details[open] summary::before{{content:"– "}}
+details p{{color:#9aa7b4;margin:0 0 14px}}
 footer{{margin-top:40px;color:#6b7785;font-size:.82rem;border-top:1px solid #21262d;padding-top:16px}}
 footer a{{color:#9aa7b4}}
 </style>
@@ -249,6 +288,18 @@ footer a{{color:#9aa7b4}}
 монет, лидеры роста и падения и индекс настроений. Данные обновляются автоматически из CoinGecko.
 Хотите не просто следить, а обменять валюту по выгодному курсу — воспользуйтесь мониторингом обменников
 <a href="{RATESCOUT}" style="color:#2ea043">RateScout</a>.</p>
+
+<section class="why">
+  <h2>Почему обменивать через RateScout</h2>
+  <p>Монитор выше показывает <b>настроение рынка</b>, но для самой сделки важен другой вопрос — <b>где курс выгоднее</b>.
+     Идти в первый попавшийся обменник — почти всегда терять на спреде.</p>
+  <p><b>RateScout</b> решает это: сравнивает курсы, резервы и рейтинги десятков обменных пунктов по сотням направлений
+     сразу, плюс даёт базовую AML-проверку криптоадреса. Вы видите лучший вариант, а не первый.</p>
+  <p><a class="more" href="{RATESCOUT}" rel="noopener">Сравнить курсы обмена на RateScout →</a></p>
+</section>
+
+<h2>Частые вопросы</h2>
+<div class="faq">{faq_html}</div>
 
 <footer>
   © MyMany · {DOMAIN} · данные CoinGecko / alternative.me · не финансовая рекомендация, 18+.<br>
