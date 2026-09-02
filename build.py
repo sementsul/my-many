@@ -21,6 +21,20 @@ BASE = f"https://{DOMAIN}"
 RATESCOUT = "https://ratescout.ru/?utm_source=mymany&utm_medium=cta"
 CG = "https://api.coingecko.com/api/v3"
 
+# Аналитика — те же счётчики, что на ratescout (Яндекс.Метрика + Google Analytics).
+# 🔴 my-many.ru нужно добавить в список доменов счётчика Метрики 111586112, иначе визиты не зачтутся.
+ANALYTICS = """<!-- Yandex.Metrika -->
+<script>(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=111586112','ym');
+ym(111586112,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:true,trackLinks:true});</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/111586112" style="position:absolute;left:-9999px;" alt=""/></div></noscript>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PPN27D6JXS"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());gtag('config','G-PPN27D6JXS');</script>"""
+
 
 def fetch(url, cache_name):
     """GET JSON с фолбэком на кэш data/<cache_name>.json (если сеть недоступна)."""
@@ -156,6 +170,7 @@ def main():
 <meta property="og:site_name" content="MyMany">
 <script type="application/ld+json">{website}</script>
 <script type="application/ld+json">{schema}</script>
+{ANALYTICS}
 <style>
 :root{{color-scheme:dark}}
 *{{box-sizing:border-box}}
