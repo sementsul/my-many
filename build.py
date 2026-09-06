@@ -561,7 +561,7 @@ DETAIL_JS = r"""(function(){
  function loadChart(c, s){
    var box=document.getElementById("chChartWrap");
    fetch("/data/chist/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(hist){
-     var key=c.n.slice(0,-1).map(function(n){return n[1];}).join("-"), ser=hist[key];
+     var key=c.n.slice(0,-1).map(function(n){return n[0];}).join("-"), ser=hist[key];  // slug-путь (n[0]), не тикеры
      if(!ser||ser.length<2){
        box.hidden=false;
        document.getElementById("ccNote").textContent=
@@ -689,7 +689,9 @@ def main():
     # ── история доходности цепочек: пишется ВПЕРЁД, точка на каждое обновление данных (rates.generated_at) ──
     # (исторических курсов обменников нет — восстановить прошлое нельзя; копим с этого момента)
     gen_ts = int(rates.get("generated_at", 0) or int(now.timestamp()))
-    ckey = lambda ch: "-".join(n[1] for n in ch["n"][:-1])
+    # ключ по SLUG-пути (n[0]), а НЕ по тикерам: тикеры не уникальны (USDC/EUR/... = много slug) → коллизия,
+    # график показывал бы чужую цепочку. slug-путь уникален.
+    ckey = lambda ch: "-".join(n[0] for n in ch["n"][:-1])
     tracked = []
     for slug, chains in shards.items():
         h = HIST.get(slug) or []
