@@ -15,6 +15,7 @@
 import html
 import json
 import os
+import shutil
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -53,6 +54,12 @@ gtag('js',new Date());gtag('config','G-PPN27D6JXS');</script>"""
 
 SUPP_CSS = """<style>
 .mm-updnote{color:#a8a8a8;font-size:13px;margin:2px 0 10px}
+.hero{position:relative;border-radius:8px;overflow:hidden;margin:0 0 14px;min-height:210px;display:flex;align-items:center}
+.hero-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.hero-ov{position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(13,17,23,.94),rgba(13,17,23,.55))}
+.hero-tx{position:relative;z-index:2;padding:16px 20px}
+.hero-tx h1{margin:.1em 0}
+@media (max-width:760px){.hero-vid{display:none}.hero{min-height:0;border-radius:6px}}
 .mm-stats{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0}
 .mm-stat{border:1px solid #245;border-radius:6px;padding:8px 14px;background:#0a0f14}
 .mm-stat b{color:#55ffff;font-size:1.15rem}
@@ -356,10 +363,17 @@ def render_home(shards, stats, stamp, top):
                   f'<a href="{RS}/" rel="noopener">BestChange/RateScout</a> и показывает доходность, риск и калькулятор. '
                   "Доходность теоретическая: перед сделкой проверяйте резерв, лимиты и комиссии у самого обменника.</p>")
     body = f"""
-  <h1>Монитор арбитражных цепочек обмена</h1>
-  <p class="lead">Огромная база выгодных цепочек обмена валют: обмениваешь по кругу (A→B→C→A) и возвращаешься с
-    бо́льшим. Данные — лучшие курсы обменников BestChange (через RateScout), обновление автоматическое. Каждая
-    цепочка открывается отдельно — с пошаговой конверсией и калькулятором.</p>
+  <div class="hero">
+    <video class="hero-vid" autoplay muted loop playsinline preload="auto">
+      <source src="/media/bg.mp4" type="video/mp4"></video>
+    <div class="hero-ov"></div>
+    <div class="hero-tx">
+      <h1>Монитор арбитражных цепочек обмена</h1>
+      <p class="lead">Огромная база выгодных цепочек обмена валют: обмениваешь по кругу (A→B→C→A) и возвращаешься с
+        бо́льшим. Данные — лучшие курсы обменников BestChange (через RateScout), обновление автоматическое. Каждая
+        цепочка открывается отдельно — с пошаговой конверсией и калькулятором.</p>
+    </div>
+  </div>
   {updnote}
   {stats_html}
   <div class="ch-ctl">
@@ -772,6 +786,12 @@ def main():
     # 404 (GitHub Pages отдаёт /404.html) — популярные точки входа для навигации назад
     popular = [(s, shards[s][0]["n"][0][1]) for s in sorted(shards, key=lambda s: -len(shards[s]))[:20]]
     open(os.path.join(DIST, "404.html"), "w", encoding="utf-8").write(render_404(popular))
+
+    # медиа (фон-видео главной) — временный пример
+    msrc = os.path.join(ROOT, "media", "bg.mp4")
+    if os.path.exists(msrc):
+        os.makedirs(os.path.join(DIST, "media"), exist_ok=True)
+        shutil.copy(msrc, os.path.join(DIST, "media", "bg.mp4"))
 
     # служебное
     open(os.path.join(DIST, "CNAME"), "w", encoding="utf-8").write(DOMAIN + "\n")
