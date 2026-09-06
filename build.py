@@ -89,7 +89,7 @@ SUPP_CSS = """<style>
 .calc .res{font-size:1.1rem;margin-top:10px}
 .calc .res b{color:#7CFC7C}
 .cc-title{color:#55ffff;font-weight:bold;margin:2px 0 8px}
-#chChart svg{width:100%;height:auto;display:block}
+#chChart svg,#stepChart svg{width:100%;height:auto;display:block}
 .cc-tip{position:absolute;pointer-events:none;display:none;background:#0a0f14;border:1px solid #55ffff;border-radius:4px;padding:6px 9px;font:12px/1.35 system-ui;color:#e6edf3;white-space:nowrap;transform:translate(-50%,-115%);z-index:6}
 .cc-tip b{color:#7CFC7C}.cc-tip .tt-p{color:#9fb3c8}.cc-tip .tt-d{color:#ffd24a}
 .ch-ranges{margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap}
@@ -232,7 +232,9 @@ def compute_shards(RATES, HIST, CUR):
             if len(set(key)) < len(cyc) or key in seen:   # повтор тикера / дубль набора
                 continue
             seen.add(key)
-            nodes = [[s, tkf(s), CUR.get(s, {}).get("name", s)] for s in cyc + [cyc[0]]]
+            # узел: [slug, тикер, имя, цена в USDT] — цена нужна графику «сумма/процент по шагам в USDT»
+            nodes = [[s, tkf(s), CUR.get(s, {}).get("name", s),
+                      (round(usd[s], 6) if usd.get(s) else None)] for s in cyc + [cyc[0]]]
             legs = []
             for i in range(len(cyc)):
                 x, y = cyc[i], cyc[(i + 1) % len(cyc)]
@@ -452,6 +454,8 @@ def render_detail_page():
     <span id="calcCur"></span>
     <div class="res" id="calcRes"></div>
   </div>
+  <div class="cc-title" style="margin-top:6px">📊 Сумма и процент по шагам (в USDT)</div>
+  <div id="stepChart" class="dosborder" style="position:relative"></div>
   <div id="chWrap" class="dosborder"><table class="step-tbl" id="stepTbl"><thead></thead><tbody></tbody></table></div>
   <p class="mon-note" id="chMeta"></p>
   <p class="mon-note" id="chLinks"></p>
@@ -535,23 +539,59 @@ DETAIL_JS = r"""(function(){
      encodeURIComponent(startSlug)+"/' rel='noopener'>на RateScout: "+esc(startNm)+"</a>. Обменять — "+
      "<a href='https://ratescout.ru/?utm_source=mymany&utm_medium=chain' rel='noopener'>RateScout</a>.";
    var thead=document.querySelector("#stepTbl thead"), tbody=document.querySelector("#stepTbl tbody");
-   thead.innerHTML="<tr><th>Шаг</th><th>Отдаёте</th><th>Курс</th><th>Получаете</th></tr>";
+   thead.innerHTML="<tr><th>Шаг</th><th>Отдаёте</th><th>Курс</th><th>Получаете</th><th>≈ USDT</th><th>Итог %</th></tr>";
    function render(){
      var amt=parseFloat(document.getElementById("calcIn").value)||0, a0=amt, html="";
+     var pr=c.n.map(function(x){return x[3]||0;}), v0=a0*pr[0], vals=[v0];
      for(var k=0;k<c.l.length;k++){
-       var rate=c.l[k][0], from=c.n[k], to=c.n[k+1], got=amt*rate;
+       var rate=c.l[k][0], from=c.n[k], to=c.n[k+1], got=amt*rate, vTo=got*(pr[k+1]||0);
+       var cum=v0>0?(vTo/v0-1)*100:0;
        html+="<tr><td>"+(k+1)+". <a href='"+c.l[k][2]+"' target='_blank' rel='nofollow sponsored'>"+
          esc(from[1])+" → "+esc(to[1])+"</a></td>"+
          "<td>"+fnum(amt)+" "+esc(from[1])+"</td>"+
          "<td>"+rate.toPrecision(6)+"</td>"+
-         "<td>"+fnum(got)+" "+esc(to[1])+"</td></tr>";
-       amt=got;
+         "<td>"+fnum(got)+" "+esc(to[1])+"</td>"+
+         "<td>"+(pr[k+1]?"≈ "+fnum(vTo):"—")+"</td>"+
+         "<td class='"+(cum>=0?"prof":"")+"'>"+(cum>=0?"+":"")+cum.toFixed(2)+"%</td></tr>";
+       amt=got; vals.push(vTo);
      }
      tbody.innerHTML=html;
      var prof=a0>0?(amt/a0-1)*100:0, delta=amt-a0;
      document.getElementById("calcRes").innerHTML="Вложено: <b>"+fnum(a0)+" "+esc(startTk)+
        "</b> → получено: <b>"+fnum(amt)+" "+esc(startTk)+"</b> · прибыль: <b>"+(delta>=0?"+":"")+fnum(delta)+" "+
        esc(startTk)+" ("+(prof>=0?"+":"")+prof.toFixed(2)+"%)</b>";
+     drawStepChart(vals, c);
+   }
+   function drawStepChart(vals, c){
+     var box=document.getElementById("stepChart"); if(!box) return;
+     var W=820,H=190,PL=48,PR=14,PT=14,PB=36,N=vals.length, v0=vals[0]||1;
+     var cum=vals.map(function(v){return (v/v0-1)*100;});
+     var ymin=Math.min.apply(null,cum), ymax=Math.max.apply(null,cum);
+     if(ymin===ymax){ymin-=1;ymax+=1;} var pd=(ymax-ymin)*0.15||1; ymin-=pd; ymax+=pd;
+     function X(i){return PL+(N<2?0:i/(N-1)*(W-PL-PR));}
+     function Y(v){return PT+(1-(v-ymin)/(ymax-ymin))*(H-PT-PB);}
+     var poly=cum.map(function(v,i){return X(i).toFixed(1)+","+Y(v).toFixed(1);}).join(" ");
+     var zeroY=Y(0), dots="", labs="";
+     for(var i=0;i<N;i++){
+       dots+="<circle cx='"+X(i).toFixed(1)+"' cy='"+Y(cum[i]).toFixed(1)+"' r='5' fill='#55ffff' data-i='"+i+"' style='cursor:pointer'/>";
+       labs+="<text x='"+X(i).toFixed(1)+"' y='"+(H-14)+"' fill='#7a8797' font-size='11' text-anchor='middle'>"+esc(c.n[i][1])+"</text>";
+     }
+     box.innerHTML="<svg viewBox='0 0 "+W+" "+H+"' xmlns='http://www.w3.org/2000/svg'>"+
+       "<line x1='"+PL+"' y1='"+zeroY.toFixed(1)+"' x2='"+(W-PR)+"' y2='"+zeroY.toFixed(1)+"' stroke='#3a4a5a' stroke-dasharray='4 4'/>"+
+       "<text x='6' y='"+(zeroY+4).toFixed(1)+"' fill='#7a8797' font-size='11'>0%</text>"+
+       "<polyline points='"+poly+"' fill='none' stroke='#55ffff' stroke-width='2'/>"+dots+labs+"</svg>"+
+       "<div id='stTip' class='cc-tip'></div>";
+     var tip=document.getElementById("stTip");
+     [].forEach.call(box.querySelectorAll("circle"),function(d){
+       d.addEventListener("mousemove",function(ev){
+         var i=+d.dataset.i, br=box.getBoundingClientRect();
+         tip.style.display="block"; tip.style.left=(ev.clientX-br.left)+"px"; tip.style.top=(ev.clientY-br.top)+"px";
+         tip.innerHTML="<div class='tt-p'>"+esc(c.n[i][1])+" · шаг "+i+"</div>"+
+           "<div>Сумма: <b>≈ "+fnum(vals[i])+" USDT</b></div>"+
+           "<div>Итог: <b>"+(cum[i]>=0?"+":"")+cum[i].toFixed(2)+"%</b></div>";
+       });
+       d.addEventListener("mouseleave",function(){tip.style.display="none";});
+     });
    }
    document.getElementById("calcIn").addEventListener("input",render);
    render();
