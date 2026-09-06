@@ -35,7 +35,7 @@ MODE_NAME = {2: "туда-обратно", 3: "треугольник", 4: "4 з
 SHARD_CAP = 200                                     # цепочек на стартовую валюту (масштаб базы)
 TOP_CAP = 800                                       # цепочек в монитор на главной
 HIST_TRACK = 800                                    # для скольких топ-цепочек пишем историю доходности
-HIST_PTS = 168                                      # точек истории на цепочку (~7 дней при часовых данных)
+HIST_PTS = 720                                      # точек истории на цепочку (~30 дней при часовых данных)
 
 VERIFY = '<meta name="yandex-verification" content="d5dd2e5c5d4ee324" />'
 
@@ -573,7 +573,7 @@ DETAIL_JS = r"""(function(){
  }
  function setupChart(ser, c, box){
    box.hidden=false;
-   var RANGES=[["24ч",86400],["3д",259200],["7д",604800]], cur=604800;
+   var RANGES=[["24ч",86400],["3д",259200],["7д",604800],["14д",1209600],["30д",2592000]], cur=2592000;
    var last=ser[ser.length-1][0], rb=document.getElementById("ccRanges");
    function paint(){
      var sub=ser.filter(function(p){return p[0]>=last-cur;});
