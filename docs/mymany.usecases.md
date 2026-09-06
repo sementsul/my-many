@@ -50,3 +50,9 @@
 на ratescout.ru), `.fine` (одна строка: «18+… © MyMany · my-many.ru — проект RateScout. Владелец: … ИНН 381616884622»).
 Классы стилизует общий styles.css. Убраны повторы «18+»/двойной копирайт/`<br>`-свалка прежней версии. LiveInternet не копируем.
 **РАДИУС:** `build.py` (`foot()`). **Проверка:** build EXIT 0; на index/c/valuta по 1×disc/links/fine, один © в футере. **Статус:** ✅.
+
+## UC-A7. Защита ветки main без поломки крона ✅
+**Предусловие:** секрет `GH_PAT` (admin: classic `repo` или fine-grained Administration:write) добавлен в репо.
+**Шаги:** Actions → «Protect main (cron-safe)» → Run workflow → PUT `/branches/main/protection` через GH_PAT.
+**Ожидаемо:** на `main` — запрет force-push/удаления + enforce_admins, но БЕЗ required PR/checks (обычный push keepalive/deploy проходит → scheduled-воркфлоу живут). HTTP 200 = включено; 401/403 = у токена нет admin.
+**РАДИУС:** `.github/workflows/protect.yml`. СОСЕДИ: `keepalive.yml` (недельный PAT-коммит) и `deploy.yml` (пуш Pages) не ломаются — прямой push разрешён. **Проверка:** YAML валиден; результат — по прогону (за владельцем). **Статус:** ✅ код; ⏳ ручной запуск.
