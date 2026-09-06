@@ -33,6 +33,8 @@ CSS = f"{RS}/assets/styles.css"                     # тот же интерфе
 MODE_NAME = {2: "туда-обратно", 3: "треугольник", 4: "4 звена"}
 SHARD_CAP = 200                                     # цепочек на стартовую валюту (масштаб базы)
 TOP_CAP = 800                                       # цепочек в монитор на главной
+HIST_TRACK = 800                                    # для скольких топ-цепочек пишем историю доходности
+HIST_PTS = 168                                      # точек истории на цепочку (~7 дней при часовых данных)
 
 VERIFY = '<meta name="yandex-verification" content="d5dd2e5c5d4ee324" />'
 
@@ -82,6 +84,10 @@ SUPP_CSS = """<style>
 .calc input{background:#0d1117;border:1px solid #245;color:#e6edf3;padding:6px 10px;border-radius:3px;width:160px;font-size:15px}
 .calc .res{font-size:1.1rem;margin-top:10px}
 .calc .res b{color:#7CFC7C}
+.cc-title{color:#55ffff;font-weight:bold;margin:2px 0 8px}
+#chChart svg{width:100%;height:auto;display:block}
+.cc-tip{position:absolute;pointer-events:none;display:none;background:#0a0f14;border:1px solid #55ffff;border-radius:4px;padding:6px 9px;font:12px/1.35 system-ui;color:#e6edf3;white-space:nowrap;transform:translate(-50%,-115%);z-index:6}
+.cc-tip b{color:#7CFC7C}.cc-tip .tt-p{color:#9fb3c8}.cc-tip .tt-d{color:#ffd24a}
 </style>"""
 
 
@@ -374,6 +380,12 @@ def render_detail_page():
   <nav class="crumbs"><a href="/">Монитор</a> / <span id="crumb">цепочка</span></nav>
   <h1 id="chTitle">Цепочка обмена</h1>
   <p class="lead" id="chLead">Загружаю цепочку…</p>
+  <div id="chChartWrap" class="dosborder" style="position:relative" hidden>
+    <div class="cc-title">📈 Как менялась доходность цепочки</div>
+    <div id="chChart"></div>
+    <p class="mon-note" id="ccNote"></p>
+    <div id="ccTip" class="cc-tip"></div>
+  </div>
   <div class="calc">
     <label>Сколько пропустить через цепочку (в стартовой валюте):
       <input id="calcIn" type="number" min="0" step="any" value="1000"></label>
@@ -483,7 +495,61 @@ DETAIL_JS = r"""(function(){
    }
    document.getElementById("calcIn").addEventListener("input",render);
    render();
+   loadChart(c, s);
  }).catch(function(){document.getElementById("chLead").textContent="Не удалось загрузить цепочку.";});
+
+ function loadChart(c, s){
+   var box=document.getElementById("chChartWrap");
+   fetch("/data/chist/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(hist){
+     var key=c.n.slice(0,-1).map(function(n){return n[1];}).join("-"), ser=hist[key];
+     if(!ser||ser.length<2){
+       box.hidden=false;
+       document.getElementById("ccNote").textContent=
+         "История доходности только начала накапливаться — точки пишутся при каждом обновлении данных (≈раз в час). Загляните позже.";
+       return;
+     }
+     drawChart(ser, c, box);
+   }).catch(function(){});
+ }
+ function drawChart(ser, c, box){
+   box.hidden=false;
+   var W=820,H=230,PL=52,PR=14,PT=14,PB=28;
+   var x0=ser[0][0], x1=ser[ser.length-1][0]; if(x1===x0)x1=x0+1;
+   var ys=ser.map(function(p){return p[1];});
+   var ymin=Math.min.apply(null,ys), ymax=Math.max.apply(null,ys);
+   if(ymin===ymax){ymin-=1;ymax+=1;} var pd=(ymax-ymin)*0.12; ymin-=pd; ymax+=pd;
+   function X(t){return PL+(t-x0)/(x1-x0)*(W-PL-PR);}
+   function Y(v){return PT+(1-(v-ymin)/(ymax-ymin))*(H-PT-PB);}
+   var poly=ser.map(function(p){return X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1);}).join(" ");
+   var grid="";
+   for(var g=0;g<=3;g++){var v=ymin+(ymax-ymin)*g/3, yy=Y(v);
+     grid+="<line x1='"+PL+"' y1='"+yy.toFixed(1)+"' x2='"+(W-PR)+"' y2='"+yy.toFixed(1)+"' stroke='#22303c'/>"+
+       "<text x='6' y='"+(yy+4).toFixed(1)+"' fill='#7a8797' font-size='11'>"+v.toFixed(1)+"%</text>";}
+   function dstr(t){var d=new Date(t*1000);return ("0"+d.getUTCDate()).slice(-2)+"."+("0"+(d.getUTCMonth()+1)).slice(-2);}
+   var svg="<svg viewBox='0 0 "+W+" "+H+"' xmlns='http://www.w3.org/2000/svg'>"+grid+
+     "<polyline points='"+poly+"' fill='none' stroke='#55ffff' stroke-width='2'/>"+
+     "<text x='"+PL+"' y='"+(H-8)+"' fill='#7a8797' font-size='11'>"+dstr(x0)+"</text>"+
+     "<text x='"+(W-PR)+"' y='"+(H-8)+"' fill='#7a8797' font-size='11' text-anchor='end'>"+dstr(x1)+"</text>"+
+     "<circle id='ccDot' r='4' fill='#55ffff' style='display:none'/>"+
+     "<rect id='ccOv' x='"+PL+"' y='"+PT+"' width='"+(W-PL-PR)+"' height='"+(H-PT-PB)+"' fill='transparent'/></svg>";
+   document.getElementById("chChart").innerHTML=svg;
+   document.getElementById("ccNote").textContent=ser.length+" точек · доходность за круг (%). Наведите курсор.";
+   var path=c.n.map(function(n){return n[1];}).join(" → "), startTk=c.n[0][1];
+   var svgEl=document.querySelector("#chChart svg"), dot=document.getElementById("ccDot"),
+       tip=document.getElementById("ccTip"), ov=document.getElementById("ccOv");
+   ov.addEventListener("mousemove",function(ev){
+     var r=svgEl.getBoundingClientRect(), sx=(ev.clientX-r.left)/r.width*W, best=0,bd=1e9;
+     for(var k=0;k<ser.length;k++){var dd=Math.abs(X(ser[k][0])-sx);if(dd<bd){bd=dd;best=k;}}
+     var p=ser[best], px=X(p[0]), py=Y(p[1]), br=box.getBoundingClientRect();
+     dot.setAttribute("cx",px);dot.setAttribute("cy",py);dot.style.display="";
+     tip.style.display="block";tip.style.left=(ev.clientX-br.left)+"px";tip.style.top=(ev.clientY-br.top)+"px";
+     var ds=new Date(p[0]*1000).toISOString().slice(0,16).replace("T"," ");
+     tip.innerHTML="<div class='tt-d'>"+ds+" UTC</div><div class='tt-p'>"+path+"</div>"+
+       "<div>Доходность: <b>+"+p[1].toFixed(2)+"%</b></div>"+
+       (p[2]!=null?"<div>Цена "+startTk+": "+p[2]+" USDT</div>":"");
+   });
+   ov.addEventListener("mouseleave",function(){dot.style.display="none";tip.style.display="none";});
+ }
 })();"""
 
 
@@ -520,6 +586,38 @@ def main():
             top.append({"p": c["p"], "r": c["r"], "c": c["c"], "m": c["m"], "path": path, "s": slug, "i": i})
     top.sort(key=lambda x: x["p"], reverse=True)
     top = top[:TOP_CAP]
+
+    # ── история доходности цепочек: пишется ВПЕРЁД, точка на каждое обновление данных (rates.generated_at) ──
+    # (исторических курсов обменников нет — восстановить прошлое нельзя; копим с этого момента)
+    gen_ts = int(rates.get("generated_at", 0) or int(now.timestamp()))
+    ckey = lambda ch: "-".join(n[1] for n in ch["n"][:-1])
+    tracked = []
+    for slug, chains in shards.items():
+        h = HIST.get(slug) or []
+        price = h[-1][1] if h else None
+        for ch in chains:
+            tracked.append((ch["p"], ckey(ch), slug, price))
+    tracked.sort(key=lambda x: -x[0])
+    tracked = tracked[:HIST_TRACK]
+    prev, _ = fetch_json(f"{BASE}/data/chain-history.json", "chain-history.json")  # прошлая история с живого сайта
+    pts = (prev.get("points") if isinstance(prev, dict) else {}) or {}
+    keep, by_slug_hist = {}, defaultdict(dict)
+    for profit, key, slug, price in tracked:
+        ser = pts.get(key, [])
+        if not ser or ser[-1][0] != gen_ts:                 # не дублируем один и тот же момент данных
+            ser = ser + [[gen_ts, profit, round(price, 6) if price else None]]
+            ser = ser[-HIST_PTS:]
+        keep[key] = ser
+        by_slug_hist[slug][key] = ser
+    with open(os.path.join(DIST, "data", "chain-history.json"), "w", encoding="utf-8") as f:
+        json.dump({"ts": gen_ts, "points": keep}, f, ensure_ascii=False, separators=(",", ":"))
+    hd = os.path.join(DIST, "data", "chist")
+    os.makedirs(hd, exist_ok=True)
+    for slug, d in by_slug_hist.items():
+        with open(os.path.join(hd, f"{slug}.json"), "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, separators=(",", ":"))
+    pmax = max((len(v) for v in keep.values()), default=0)
+    print(f"   история: {len(keep)} цепочек, ts={gen_ts}, макс.точек={pmax}")
 
     # страницы
     open(os.path.join(DIST, "index.html"), "w", encoding="utf-8").write(render_home(shards, stats, stamp, top))
