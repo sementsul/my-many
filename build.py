@@ -82,6 +82,9 @@ SUPP_CSS = """<style>
 .calc input{background:#0d1117;border:1px solid #245;color:#e6edf3;padding:6px 10px;border-radius:3px;width:160px;font-size:15px}
 .calc .res{font-size:1.1rem;margin-top:10px}
 .calc .res b{color:#7CFC7C}
+.mm-cta{text-align:center;margin:22px 0}
+.mm-cta a{display:inline-block;background:#00aaaa;color:#111;font-weight:bold;padding:12px 30px;text-decoration:none;border-radius:4px;font-size:16px}
+.mm-cta a:hover{background:#55ffff}
 </style>"""
 
 
@@ -376,6 +379,7 @@ def render_detail_page():
   <p class="mon-note" id="chMeta"></p>
   <p class="mon-note" id="chLinks"></p>
   <div class="ch-disc">""" + DISC_HTML + """</div>
+  <div class="mm-cta"><a href="/">💰 Арбитраж — все цепочки</a></div>
 """ + "<script>" + DETAIL_JS + "</script>"
     return head("Арбитражная цепочка обмена — калькулятор и пошаговая конверсия | MyMany",
                 "Пошаговый разбор арбитражной цепочки обмена валют: курс на каждом шаге, итоговый процент и "
