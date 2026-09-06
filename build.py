@@ -92,6 +92,10 @@ SUPP_CSS = """<style>
 #chChart svg{width:100%;height:auto;display:block}
 .cc-tip{position:absolute;pointer-events:none;display:none;background:#0a0f14;border:1px solid #55ffff;border-radius:4px;padding:6px 9px;font:12px/1.35 system-ui;color:#e6edf3;white-space:nowrap;transform:translate(-50%,-115%);z-index:6}
 .cc-tip b{color:#7CFC7C}.cc-tip .tt-p{color:#9fb3c8}.cc-tip .tt-d{color:#ffd24a}
+.ch-ranges{margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap}
+.ch-ranges button{background:#0a0f14;border:1px solid #245;color:#7cf;padding:3px 12px;cursor:pointer;border-radius:3px;font-size:13px}
+.ch-ranges button.on{background:#00aaaa;color:#111;font-weight:bold}
+.ch-ranges button:disabled{opacity:.4;cursor:not-allowed}
 /* ── мобильная адаптация ── */
 @media (max-width:760px){
   /* ratescout прячет #topnav на мобиле (там бургер+app.js, которых у нас нет) — возвращаем меню */
@@ -437,6 +441,7 @@ def render_detail_page():
   <p class="lead" id="chLead">Загружаю цепочку…</p>
   <div id="chChartWrap" class="dosborder" style="position:relative" hidden>
     <div class="cc-title">📈 Как менялась доходность цепочки</div>
+    <div id="ccRanges" class="ch-ranges"></div>
     <div id="chChart"></div>
     <p class="mon-note" id="ccNote"></p>
     <div id="ccTip" class="cc-tip"></div>
@@ -563,8 +568,29 @@ DETAIL_JS = r"""(function(){
          "История доходности только начала накапливаться — точки пишутся при каждом обновлении данных (≈раз в час). Загляните позже.";
        return;
      }
-     drawChart(ser, c, box);
+     setupChart(ser, c, box);
    }).catch(function(){});
+ }
+ function setupChart(ser, c, box){
+   box.hidden=false;
+   var RANGES=[["24ч",86400],["3д",259200],["7д",604800]], cur=604800;
+   var last=ser[ser.length-1][0], rb=document.getElementById("ccRanges");
+   function paint(){
+     var sub=ser.filter(function(p){return p[0]>=last-cur;});
+     if(sub.length<2){document.getElementById("chChart").innerHTML="";
+       document.getElementById("ccNote").textContent="За выбранный период точек мало — истории пока накоплено меньше.";return;}
+     drawChart(sub, c, box);
+   }
+   rb.innerHTML="";
+   RANGES.forEach(function(r){
+     var n=ser.filter(function(p){return p[0]>=last-r[1];}).length;
+     var b=document.createElement("button");b.textContent=r[0];b.dataset.w=r[1];
+     if(n<2)b.disabled=true;
+     b.onclick=function(){cur=r[1];[].forEach.call(rb.children,function(x){x.className=(+x.dataset.w===cur)?"on":"";});paint();};
+     rb.appendChild(b);
+   });
+   [].forEach.call(rb.children,function(x){x.className=(+x.dataset.w===cur)?"on":"";});
+   paint();
  }
  function drawChart(ser, c, box){
    box.hidden=false;
