@@ -29,6 +29,7 @@ RS_UTM = f"{RS}/?utm_source=mymany&utm_medium=cta"
 REF = "1116359"                                     # партнёрская метка BestChange (как у ratescout)
 RAW = "https://raw.githubusercontent.com/sementsul/ratescout/main"
 CSS = f"{RS}/assets/styles.css"                     # тот же интерфейс, что у ratescout
+OG_IMAGE = f"{RS}/apple-touch-icon.png"             # карточка для соцсетей/поиска (бренд-иконка)
 
 MODE_NAME = {2: "туда-обратно", 3: "треугольник", 4: "4 звена"}
 SHARD_CAP = 200                                     # цепочек на стартовую валюту (масштаб базы)
@@ -76,6 +77,9 @@ SUPP_CSS = """<style>
 .ch-more button{background:#00aaaa;color:#111;border:0;padding:8px 18px;cursor:pointer;font-weight:bold;border-radius:3px}
 .ch-disc{padding:12px;margin-top:16px;color:#a8a8a8;font-size:13px;border:1px solid #245;border-radius:6px}
 .ch-disc b{color:#ffd24a}
+.entry-links{line-height:2.1}
+.e404{text-align:center;padding:30px 10px}
+.e404 .big{font-size:3rem;color:#55ffff;font-weight:bold;margin:0}
 /* страница цепочки */
 .step-tbl{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
 .step-tbl th,.step-tbl td{padding:7px 9px;border-bottom:1px solid #245;text-align:right}
@@ -216,7 +220,9 @@ def compute_shards(RATES, HIST, CUR):
 
 
 # ─────────────────────────── шаблоны (интерфейс ratescout) ───────────────────────────
-def head(title, desc, canonical, extra_ld=""):
+def head(title, desc, canonical, extra_ld="", robots=""):
+    robots_tag = f'<meta name="robots" content="{robots}">\n' if robots else ""
+    canon_tag = f'<link rel="canonical" href="{canonical}">\n' if canonical else ""
     return f"""<!doctype html>
 <html lang="ru">
 <head>
@@ -225,14 +231,19 @@ def head(title, desc, canonical, extra_ld=""):
 {VERIFY}
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-<link rel="canonical" href="{canonical}">
-<meta property="og:type" content="website">
+{robots_tag}{canon_tag}<meta property="og:type" content="website">
 <meta property="og:title" content="{esc(title)}">
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{canonical}">
 <meta property="og:site_name" content="MyMany · арбитраж RateScout">
+<meta property="og:image" content="{OG_IMAGE}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{esc(title)}">
+<meta name="twitter:description" content="{esc(desc)}">
+<meta name="twitter:image" content="{OG_IMAGE}">
 <link rel="stylesheet" href="{CSS}">
 <link rel="icon" href="{RS}/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="{OG_IMAGE}">
 {extra_ld}
 {ANALYTICS}
 {SUPP_CSS}
@@ -303,6 +314,16 @@ def render_home(shards, stats, stamp, top):
     opts_html = '<option value="">все валюты</option>' + "".join(
         f'<option value="{esc(s)}">{esc((v[0]["n"][0][1]))} — {len(v)}</option>' for s, v in opts[:120])
     js = HOME_JS.replace("__DATA__", data)
+    # SEO-перелинковка: популярные точки входа по стартовой валюте (внутренние ссылки на /valuta/)
+    entry_links = " · ".join(
+        f'<a href="/valuta/{esc(s)}/">{esc(v[0]["n"][0][1])}</a>' for s, v in opts[:40])
+    entry_html = (f'<h2>Популярные точки входа</h2><p class="mon-note">Выберите валюту, которая у вас есть, — '
+                  f'увидите цепочки, начинающиеся с неё:</p><p class="entry-links">{entry_links}</p>')
+    about_html = ("<h2>Что такое арбитраж обмена валют</h2><p>Арбитраж — это последовательность обменов по кругу "
+                  "(например, USDT → TON → карта → USDT), где из-за разницы курсов у разных обменников вы возвращаетесь "
+                  "в исходную валюту с прибылью. MyMany считает такие цепочки по данным мониторинга обменников "
+                  f'<a href="{RS}/" rel="noopener">BestChange/RateScout</a> и показывает доходность, риск и калькулятор. '
+                  "Доходность теоретическая: перед сделкой проверяйте резерв, лимиты и комиссии у самого обменника.</p>")
     body = f"""
   <h1>Монитор арбитражных цепочек обмена</h1>
   <p class="lead">Огромная база выгодных цепочек обмена валют: обмениваешь по кругу (A→B→C→A) и возвращаешься с
@@ -321,6 +342,8 @@ def render_home(shards, stats, stamp, top):
   <div class="ch-more"><button id="chMore">показать ещё</button></div>
   <p class="mon-note">Мини-бар у доходности — относительно лучшей в выборке; у риска — по шкале 0–100.
     Клик по цепочке — пошаговый разбор и калькулятор.</p>
+  {entry_html}
+  {about_html}
   <div class="ch-disc">{DISC_HTML}</div>
 """ + "<script>" + js + "</script>"
     return head("Монитор арбитражных цепочек обмена валют — доходность и калькулятор | MyMany",
@@ -345,7 +368,14 @@ def render_currency(slug, chains, stamp, CUR):
                  f'<td class="num">{MODE_NAME[c["m"]]}</td></tr>')
     ld = ('<script type="application/ld+json">'
           + json.dumps({"@context": "https://schema.org", "@type": "CollectionPage",
-                        "name": f"Арбитражные цепочки с {nm}", "url": f"{BASE}/valuta/{slug}/"}, ensure_ascii=False)
+                        "name": f"Арбитражные цепочки с {nm}", "url": f"{BASE}/valuta/{slug}/",
+                        "isPartOf": {"@type": "WebSite", "name": "MyMany", "url": BASE + "/"},
+                        "about": f"Арбитраж и выгодный обмен {nm} ({tkr})"}, ensure_ascii=False)
+          + '</script><script type="application/ld+json">'
+          + json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+              {"@type": "ListItem", "position": 1, "name": "Монитор цепочек", "item": BASE + "/"},
+              {"@type": "ListItem", "position": 2, "name": f"Арбитраж с {nm}", "item": f"{BASE}/valuta/{slug}/"}]},
+              ensure_ascii=False)
           + "</script>")
     body = f"""
   <nav class="crumbs"><a href="/">Монитор</a> / {esc(nm)}</nav>
@@ -400,7 +430,7 @@ def render_detail_page():
     return head("Арбитражная цепочка обмена — калькулятор и пошаговая конверсия | MyMany",
                 "Пошаговый разбор арбитражной цепочки обмена валют: курс на каждом шаге, итоговый процент и "
                 "калькулятор суммы. Данные BestChange. Проект RateScout.",
-                BASE + "/c/", ld) + body + foot()
+                BASE + "/c/", ld, robots="noindex, follow") + body + foot()
 
 
 DISC_HTML = (
@@ -553,6 +583,24 @@ DETAIL_JS = r"""(function(){
 })();"""
 
 
+def render_404(popular):
+    """Страница 404 (GitHub Pages отдаёт /404.html). Не индексируется, ведёт назад в базу."""
+    links = " · ".join(f'<a href="/valuta/{esc(s)}/">{esc(tk)}</a>' for s, tk in popular)
+    body = f"""
+  <div class="e404">
+    <p class="big">404</p>
+    <h1>Страница не найдена</h1>
+    <p class="lead">Такой страницы нет или она устарела (база цепочек обновляется автоматически, и ссылки на
+      отдельные цепочки со временем меняются).</p>
+    <p><a class="dosbtn" href="/">← В монитор арбитражных цепочек</a></p>
+    <p class="mon-note">Популярные точки входа: {links}</p>
+    <p class="mon-note">Обменять валюту по лучшему курсу — на <a href="{RS_UTM}" rel="noopener">RateScout</a>.</p>
+  </div>
+"""
+    return head("404 — страница не найдена | MyMany", "Страница не найдена. Вернитесь в монитор арбитражных "
+                "цепочек обмена MyMany.", "", robots="noindex, follow") + body + foot()
+
+
 def main():
     if os.path.isdir(DIST):
         import shutil
@@ -627,6 +675,10 @@ def main():
         d = os.path.join(DIST, "valuta", slug)
         os.makedirs(d, exist_ok=True)
         open(os.path.join(d, "index.html"), "w", encoding="utf-8").write(render_currency(slug, chains, stamp, CUR))
+
+    # 404 (GitHub Pages отдаёт /404.html) — популярные точки входа для навигации назад
+    popular = [(s, shards[s][0]["n"][0][1]) for s in sorted(shards, key=lambda s: -len(shards[s]))[:20]]
+    open(os.path.join(DIST, "404.html"), "w", encoding="utf-8").write(render_404(popular))
 
     # служебное
     open(os.path.join(DIST, "CNAME"), "w", encoding="utf-8").write(DOMAIN + "\n")
