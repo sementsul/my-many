@@ -1,0 +1,55 @@
+name: Token test
+
+# Разовая самопроверка секрета GH_PAT: валидность, права (scopes), admin-доступ к защите ветки
+# и РЕАЛЬНЫЙ PAT-push (та же способность, что нужна keepalive). Пишет результат в token-test.json,
+# который затем читается снаружи через raw-GitHub. Триггерится при изменении самого файла + вручную.
+
+on:
+  push:
+    paths: ['.github/workflows/token-test.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - name: Validate GH_PAT and write result
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          set +e
+          U=$(curl -sS -o /tmp/u.json -w "%{http_code}" -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" https://api.github.com/user)
+          LOGIN=$(python3 -c "import json;print(json.load(open('/tmp/u.json')).get('login','?'))" 2>/dev/null || echo "?")
+          SCOPES=$(curl -sS -D - -o /dev/null -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/user \
+                   | tr -d '\r' | awk -F': ' 'tolower($1)=="x-oauth-scopes"{print $2}')
+          PROT=$(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GH_TOKEN" \
+                 -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/branches/main/protection")
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # admin (может настраивать защиту): 200=защита есть, 404=не защищено, но доступ есть → admin OK; 403=нет прав
+          if [ "$PROT" = "403" ]; then ADMIN="NO (нет Administration/repo-admin)"; else ADMIN="YES"; fi
+          U="$U" LOGIN="$LOGIN" SCOPES="$SCOPES" PROT="$PROT" ADMIN="$ADMIN" TS="$TS" python3 -c '
+          import json,os
+          print(json.dumps({
+            "ts": os.environ["TS"],
+            "user_http": os.environ["U"],
+            "login": os.environ["LOGIN"],
+            "scopes_classic": os.environ["SCOPES"] or "(fine-grained или пусто)",
+            "branch_protection_http": os.environ["PROT"],
+            "admin_capability": os.environ["ADMIN"],
+            "token_valid": os.environ["U"]=="200"
+          }, ensure_ascii=False, indent=2))' > token-test.json
+          cat token-test.json
+          git config user.name "token-test-bot"
+          git config user.email "token-test-bot@users.noreply.github.com"
+          git add token-test.json
+          git commit -m "test: GH_PAT self-check [skip ci]" || { echo "нет изменений"; }
+          git push
+          echo "PUSH_EXIT=$?"
