@@ -264,10 +264,20 @@ def foot():
   <a href="{RS}/kursy/">курсы валют</a> ·
   <a href="{RS}/heatmap/">тепловая карта</a>.
   © {datetime.now(timezone.utc).year} MyMany · {DOMAIN}
+  {RS_FOOTER}
 </div>
 </div>
 </body>
 </html>"""
+
+
+# Нижняя часть ratescout (от «О сервисе» до конца) — та же информация, что на ratescout.ru;
+# ссылки сделаны абсолютными на ratescout.ru. Классы .links/.fine/.erid стилизует общий styles.css.
+RS_FOOTER = f"""
+  <div class="links">
+    <a href="{RS}/o-servise/">О сервисе</a> · <a href="{RS}/aml/">AML-проверка</a> · <a href="{RS}/vidzhet/">Виджет для сайта</a> · <a href="{RS}/redakciya/">О редакции</a> · <a href="https://blogger.ratescout.ru/" target="_blank" rel="noopener me">Блог на Blogger</a> · <a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Канал в Telegram</a> · <a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · <a href="https://www.yell.ru/moscow/com/ratescout-ru_14524615/" target="_blank" rel="noopener me">Yell.ru</a> · <a href="{RS}/raskrytie/">Раскрытие и дисклеймеры</a> · <a href="{RS}/politika/">Политика конфиденциальности</a>
+  </div>
+  <div class="fine">18+. Информация носит справочный характер, не является рекламой, офертой или финансовой рекомендацией. Курсы меняются. © RateScout ratescout.ru.<br><span class="erid">Владелец сайта: самозанятый (НПД) Семенцул Максим Геннадиевич, ИНН 381616884622.</span></div>"""
 
 
 def render_home(shards, stats, stamp, top):
