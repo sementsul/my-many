@@ -92,6 +92,31 @@ SUPP_CSS = """<style>
 #chChart svg{width:100%;height:auto;display:block}
 .cc-tip{position:absolute;pointer-events:none;display:none;background:#0a0f14;border:1px solid #55ffff;border-radius:4px;padding:6px 9px;font:12px/1.35 system-ui;color:#e6edf3;white-space:nowrap;transform:translate(-50%,-115%);z-index:6}
 .cc-tip b{color:#7CFC7C}.cc-tip .tt-p{color:#9fb3c8}.cc-tip .tt-d{color:#ffd24a}
+/* ── мобильная адаптация ── */
+@media (max-width:760px){
+  /* ratescout прячет #topnav на мобиле (там бургер+app.js, которых у нас нет) — возвращаем меню */
+  #topnav{display:block !important}
+  #menu-top{gap:6px 14px;font-size:14px}
+  #logotop{font-size:1.3rem}
+  .mm-stats{gap:8px}
+  .mm-stat{flex:1 1 44%;padding:8px 10px}
+  .mm-stat b{font-size:1.05rem}
+  .ch-ctl{gap:10px}
+  .ch-ctl label,.ch-ctl select{width:100%}
+  .ch-ctl .seg{display:flex;flex-wrap:wrap}
+  #chTbl{font-size:13px}
+  #chTbl th,#chTbl td{padding:5px 6px}
+  .ch-path a{white-space:normal}
+  .cc-tip{max-width:80vw;white-space:normal}
+  .calc input{width:100%;max-width:240px}
+  .step-tbl{font-size:13px}
+  .step-tbl th,.step-tbl td{padding:6px 5px}
+  #footer .links{line-height:2}
+}
+@media (max-width:460px){
+  .mbar-wrap{display:none}          /* мини-бары прячем на узких — цифры остаются */
+  .mm-stat{flex:1 1 100%}
+}
 </style>"""
 
 
