@@ -86,7 +86,6 @@ SUPP_CSS = """<style>
 .entry-links{line-height:2.1}
 .e404{text-align:center;padding:30px 10px}
 .e404 .big{font-size:3rem;color:#55ffff;font-weight:bold;margin:0}
-.lang-sw a{color:#7cf}
 /* страница цепочки */
 .step-tbl{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
 .step-tbl th,.step-tbl td{padding:7px 9px;border-bottom:1px solid #245;text-align:right}
@@ -320,6 +319,11 @@ def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
     other = "en" if lang == "ru" else "ru"
     sw_href = f"{PREF[other]}{path}" or "/"
     sw_label = "EN" if lang == "ru" else "RU"
+    # переключатель языка — как на ratescout: <a class="langsw"> в #header рядом с логотипом.
+    # Класс .langsw стилизован в общем styles.css. Персист выбора — inline onclick (app.js ratescout у нас нет).
+    switch = (f'<a class="langsw" data-lang="{other}" '
+              f'onclick="try{{localStorage.setItem(\'mm_lang\',\'{other}\')}}catch(e){{}}" '
+              f'href="{sw_href}" rel="alternate" hreflang="{HREF[other]}">{sw_label}</a>')
     site_name = L(lang, "MyMany · арбитраж RateScout", "MyMany · RateScout arbitrage")
     sub = L(lang, " · арбитраж", " · arbitrage")
     nav = f"""
@@ -329,7 +333,6 @@ def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
     <li><a href="{PREF[lang]}/valuta/tether-trc20/">{L(lang, 'С USDT', 'From USDT')}</a></li>
     <li><a href="{rs(lang, '/monitor/')}">{L(lang, 'RateScout&nbsp;монитор', 'RateScout&nbsp;monitor')}</a></li>
     <li><a href="{rs(lang, '/tsepochki/')}">{L(lang, 'RateScout&nbsp;цепочки', 'RateScout&nbsp;chains')}</a></li>
-    <li class="lang-sw"><a href="{sw_href}" data-l="{other}" onclick="try{{localStorage.setItem('mm_lang','{other}')}}catch(e){{}}" rel="alternate" hreflang="{HREF[other]}">🌐 {sw_label}</a></li>
   </ul>"""
     return f"""<!doctype html>
 <html lang="{HREF[lang]}">
@@ -363,6 +366,7 @@ def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
 <div id="header">
   <h1 id="logotop"><a href="{PREF[lang]}/"><span class="logo">[⇄]</span> MyMany<span class="tld">.ru</span></a>
     <small style="color:#a8a8a8">{sub}</small></h1>
+  {switch}
 </div>
 <div id="topnav" class="doscyan dosborder">{nav}
 </div>

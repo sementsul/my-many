@@ -35,8 +35,9 @@
   (монитор `HOME_JS`, калькулятор/график `DETAIL_JS`) вынесены в объект `LBL` и инжектятся `json.dumps` — своя копия на язык.
 - Ссылки на ratescout — через `rs(lang, path)` (EN-страницы ratescout лежат в `/en/…`). Внутренние ссылки монитора на
   `/c/` строятся в JS как `LBL.cpref + "/c/"` → в EN даёт `/en/c/`.
-- В `<head>`: `hreflang` ru/en/x-default, `og:locale`, `<html lang>`. Переключатель языка (🌐 EN/RU) — последним пунктом меню,
-  ведёт на тот же путь в другой версии; по клику пишет выбор в `localStorage['mm_lang']`.
+- В `<head>`: `hreflang` ru/en/x-default, `og:locale`, `<html lang>`. Переключатель языка — как на ratescout:
+  `<a class="langsw" data-lang=…>EN/RU</a>` в `#header` рядом с логотипом (стиль `.langsw` из общего `styles.css`),
+  ведёт на тот же путь в другой версии; по клику пишет выбор в `localStorage['mm_lang']` (inline onclick — app.js ratescout у нас нет).
 - **Мягкий языковой авторедирект** (`head(..., autoredir=True)` на контентных, НЕ на 404): скрипт в самом верху `<head>`
   (до отрисовки — без мигания). Первый вход — по `navigator.language` (не `ru*` → EN); если сохранён `mm_lang` — держим
   его на всех страницах (RU-стр. с предпочтением EN → `/en`+тот же путь; EN-стр. с предпочтением RU → снять `/en`).
