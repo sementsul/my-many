@@ -296,9 +296,24 @@ def compute_shards(RATES, HIST, CUR):
 
 
 # ─────────────────────────── шаблоны (интерфейс ratescout) ───────────────────────────
-def head(lang, path, title, desc, extra_ld="", robots=""):
-    """Общая шапка. path — путь без языкового префикса (напр. '/', '/valuta/btc/', '/c/')."""
+def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
+    """Общая шапка. path — путь без языкового префикса (напр. '/', '/valuta/btc/', '/c/').
+
+    autoredir=True — включает мягкий языковой авторедирект (первый вход = по языку браузера,
+    ручной выбор сохраняется в localStorage 'mm_lang' и дальше держится на всех страницах).
+    В <head> до отрисовки — без мигания. На 404 не ставим (autoredir=False по умолчанию).
+    """
     canonical = f"{BASE}{PREF[lang]}{path}"
+    if autoredir and lang == "ru":       # RU-страница: если предпочтение EN — уводим на тот же путь в /en/
+        redir = ("<script>(function(){try{var s=localStorage.getItem('mm_lang');"
+                 "if(!s){s=((navigator.language||navigator.userLanguage||'').toLowerCase().slice(0,2)==='ru')?'ru':'en';}"
+                 "if(s==='en'){location.replace('/en'+location.pathname+location.search);}}catch(e){}})();</script>\n")
+    elif autoredir and lang == "en":     # EN-страница: если предпочтение RU — снимаем /en-префикс
+        redir = ("<script>(function(){try{var s=localStorage.getItem('mm_lang');"
+                 "if(!s){s=((navigator.language||navigator.userLanguage||'').toLowerCase().slice(0,2)==='ru')?'ru':'en';}"
+                 "if(s==='ru'){location.replace((location.pathname.replace(/^\\/en/,'')||'/')+location.search);}}catch(e){}})();</script>\n")
+    else:
+        redir = ""
     robots_tag = f'<meta name="robots" content="{robots}">\n' if robots else ""
     alts = "".join(f'<link rel="alternate" hreflang="{HREF[l]}" href="{BASE}{PREF[l]}{path}">\n' for l in LANGS)
     alts += f'<link rel="alternate" hreflang="x-default" href="{BASE}{path}">\n'
@@ -314,14 +329,14 @@ def head(lang, path, title, desc, extra_ld="", robots=""):
     <li><a href="{PREF[lang]}/valuta/tether-trc20/">{L(lang, 'С USDT', 'From USDT')}</a></li>
     <li><a href="{rs(lang, '/monitor/')}">{L(lang, 'RateScout&nbsp;монитор', 'RateScout&nbsp;monitor')}</a></li>
     <li><a href="{rs(lang, '/tsepochki/')}">{L(lang, 'RateScout&nbsp;цепочки', 'RateScout&nbsp;chains')}</a></li>
-    <li class="lang-sw"><a href="{sw_href}" rel="alternate" hreflang="{HREF[other]}">🌐 {sw_label}</a></li>
+    <li class="lang-sw"><a href="{sw_href}" data-l="{other}" onclick="try{{localStorage.setItem('mm_lang','{other}')}}catch(e){{}}" rel="alternate" hreflang="{HREF[other]}">🌐 {sw_label}</a></li>
   </ul>"""
     return f"""<!doctype html>
 <html lang="{HREF[lang]}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{VERIFY}
+{redir}{VERIFY}
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 {robots_tag}<link rel="canonical" href="{canonical}">
@@ -508,7 +523,7 @@ def render_home(lang, shards, stats, stamp, top):
   {about_html}
   <div class="ch-disc">{DISC(lang)}</div>
 """ + "<script>" + js + "</script>"
-    return head(lang, "/", title, desc, ld) + body + foot(lang)
+    return head(lang, "/", title, desc, ld, autoredir=True) + body + foot(lang)
 
 
 def render_currency(lang, slug, chains, stamp, CUR):
@@ -582,7 +597,7 @@ def render_currency(lang, slug, chains, stamp, CUR):
   <p class="mon-note">{note}</p>
   <div class="ch-disc">{DISC(lang)}</div>
 """
-    return head(lang, f"/valuta/{slug}/", title, desc, ld) + body + foot(lang)
+    return head(lang, f"/valuta/{slug}/", title, desc, ld, autoredir=True) + body + foot(lang)
 
 
 def detail_lbl(lang):
@@ -680,7 +695,7 @@ def render_detail_page(lang):
   <p class="mon-note" id="chLinks"></p>
   <div class="ch-disc">{DISC(lang)}</div>
 """ + "<script>" + js + "</script>"
-    return head(lang, "/c/", title, desc, ld, robots="noindex, follow") + body + foot(lang)
+    return head(lang, "/c/", title, desc, ld, robots="noindex, follow", autoredir=True) + body + foot(lang)
 
 
 HOME_JS = r"""(function(){
