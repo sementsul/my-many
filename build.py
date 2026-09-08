@@ -314,6 +314,7 @@ def foot():
     <a href="{RS}/redakciya/">О редакции</a> ·
     <a href="https://blogger.ratescout.ru/" target="_blank" rel="noopener me">Блог</a> ·
     <a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Telegram</a> ·
+    <a href="https://ok.ru/group/70000057243663" target="_blank" rel="noopener me">Одноклассники</a> ·
     <a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> ·
     <a href="https://www.yell.ru/moscow/com/ratescout-ru_14524615/" target="_blank" rel="noopener me">Yell.ru</a> ·
     <a href="{RS}/raskrytie/">Раскрытие</a> · <a href="{RS}/politika/">Политика конфиденциальности</a></div>
