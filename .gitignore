@@ -3,3 +3,4 @@ __pycache__/
 dist/
 data/rates.json
 data/history.json
+data/chain-history.json
