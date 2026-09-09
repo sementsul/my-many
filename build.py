@@ -829,7 +829,7 @@ DETAIL_JS = r"""(function(){
    var box=document.getElementById("chChartWrap");
    fetch("/data/chist/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(hist){
      var key=c.n.slice(0,-1).map(function(n){return n[0];}).join("-"), ser=hist[key];  // slug-путь (n[0]), не тикеры
-     if(!ser||ser.length<2){
+     if(!ser||ser.length<1){
        box.hidden=false;
        document.getElementById("ccNote").textContent=LBL.histAccruing;
        return;
