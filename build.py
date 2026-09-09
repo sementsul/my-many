@@ -843,7 +843,7 @@ DETAIL_JS = r"""(function(){
    var last=ser[ser.length-1][0], rb=document.getElementById("ccRanges");
    function paint(){
      var sub=ser.filter(function(p){return p[0]>=last-cur;});
-     if(sub.length<2){document.getElementById("chChart").innerHTML="";
+     if(sub.length<1){document.getElementById("chChart").innerHTML="";
        document.getElementById("ccNote").textContent=LBL.fewPts;return;}
      drawChart(sub, c, box);
    }
