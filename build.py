@@ -934,6 +934,31 @@ def render_404(lang, popular):
     return head(lang, "/404", title, desc, robots="noindex, follow") + body + foot(lang)
 
 
+
+def render_partner(lang):
+    """Партнёрская программа BestChange — для MyMany, p=1116359."""
+    REF_PARTNER = "1116359"
+    REG_URL = f"https://www.bestchange.ru/partner/account.html?p={REF_PARTNER}"
+    if lang == "ru":
+        title = "Партнёрская программа BestChange — зарабатывайте с MyMany"
+        desc = "Зарабатывайте с реферальной программой BestChange через MyMany: 3 уровня, до $5+ с пользователя, выплаты в BTC/ЮMoney/WebMoney/Volet. Регистрация p=1116359."
+        h1 = "Партнёрская программа BestChange"
+        lead = f'''<p class="lead"><b>MyMany</b> — проект <b>RateScout</b> по арбитражу — подключён к <b>реферальной программе BestChange</b>. Размещайте ссылки с <code>?p={REF_PARTNER}</code> и получайте вознаграждение — бессрочно.</p>
+        <div class="conv dosblue dosborder" style="text-align:center;padding:18px">
+          <p><b>Ваша реферальная ссылка:</b> <code>https://www.bestchange.ru/?p={REF_PARTNER}</code></p>
+          <p><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Зарегистрироваться в партнёрке →</a></p>
+        </div>'''
+        body = f"{lead}<h2>Как это работает</h2><ol class=\"steps\"><li>Регистрируетесь → <code>?p={REF_PARTNER}</code></li><li>Делитесь ссылками (любая страница BestChange, напр. <code>/bitcoin-to-ethereum.html?p={REF_PARTNER}</code>)</li><li>Получаете — cookie 365d, от $1</li></ol><h2>Уровни</h2><p>1-й 30% (+30% AML до 2026), 2-й 30%, 3-й 10%</p><div class=\"conv dosblue dosborder\" style=\"text-align:center\"><a class=\"cta\" href=\"{REG_URL}\" target=\"_blank\" rel=\"nofollow noopener\">Регистрация →</a></div>"
+        crumb = "Партнерам"
+    else:
+        title = "BestChange affiliate — earn with MyMany"
+        desc = "Earn with BestChange affiliate via MyMany: 3 tiers, up to $5+ per user, payouts in BTC. Register p=1116359."
+        h1 = "BestChange affiliate program"
+        lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. Share <code>?p={REF_PARTNER}</code> and earn.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>'''
+        body = f"{lead}<h2>How it works</h2><ol><li>Register → <code>?p={REF_PARTNER}</code></li><li>Share links</li><li>Earn</li></ol>"
+        crumb = "For partners"
+    render_page(lang, "partner", title, desc, body, crumb)
+
 def main():
     if os.path.isdir(DIST):
         import shutil
