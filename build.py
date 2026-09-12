@@ -973,7 +973,8 @@ def render_partner(lang):
         lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. Share <code>?p={REF_PARTNER}</code> and earn.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>{ad_mark(lang)}'''
         body = f"{lead}<h2>How it works</h2><ol><li>Register → <code>?p={REF_PARTNER}</code></li><li>Share links</li><li>Earn</li></ol>"
         crumb = "For partners"
-    render_page(lang, "partner", title, desc, body, crumb)
+    nav = f'<nav class="crumbs"><a href="{PREF[lang]}/">{"Monitor" if lang == "en" else "Монитор"}</a> / {crumb}</nav>'
+    return head(lang, "/partner/", title, desc) + nav + f"<h1>{h1}</h1>" + body + foot(lang)
 
 def main():
     if os.path.isdir(DIST):
@@ -1051,6 +1052,8 @@ def main():
         open(os.path.join(out, "index.html"), "w", encoding="utf-8").write(render_home(lang, shards, stats, stamp, top))
         os.makedirs(os.path.join(out, "c"), exist_ok=True)
         open(os.path.join(out, "c", "index.html"), "w", encoding="utf-8").write(render_detail_page(lang))
+        os.makedirs(os.path.join(out, "partner"), exist_ok=True)
+        open(os.path.join(out, "partner", "index.html"), "w", encoding="utf-8").write(render_partner(lang))
         for slug, chains in shards.items():
             d = os.path.join(out, "valuta", slug)
             os.makedirs(d, exist_ok=True)
@@ -1074,7 +1077,7 @@ def main():
                     f'<changefreq>hourly</changefreq><priority>{prio}</priority>\n{alt}  </url>\n')
         return out
 
-    sm = sm_url("/", "1.0")
+    sm = sm_url("/", "1.0") + sm_url("/partner/", "0.5")
     for slug in sorted(shards, key=lambda s: -len(shards[s])):
         sm += sm_url(f"/valuta/{slug}/", "0.7")
     open(os.path.join(DIST, "sitemap.xml"), "w", encoding="utf-8").write(
