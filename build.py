@@ -374,7 +374,7 @@ def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
 <body>
 <div id="wrapper">
 <div id="header">
-  <h1 id="logotop"><a href="{PREF[lang]}/"><span class="logo">[⇄]</span> MyMany<span class="tld">.ratescout.ru</span></a>
+  <h1 id="logotop"><a href="{RS}{'/en' if lang == 'en' else ''}/"><span class="logo">[⇄]</span> RateScout<span class="tld">.ru</span></a>
     <small style="color:#a8a8a8">{sub}</small></h1>
   {switch}
 </div>
