@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MyMany — арбитражная база цепочек обмена валют (my-many.ru). Проект RateScout по арбитражу.
+"""MyMany — арбитражная база цепочек обмена валют (my-many.ratescout.ru). Проект RateScout по арбитражу.
 
 Что делает: берёт направленные курсы обменников BestChange (rates.json из репозитория ratescout, raw GitHub) +
 цены в USDT (history.json) + справочник валют (currencies.json), считает ВЫГОДНЫЕ цепочки обмена A→…→A
@@ -25,10 +25,11 @@ from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(ROOT, "dist")
 DATA = os.path.join(ROOT, "data")
-DOMAIN = "my-many.ru"
+DOMAIN = "my-many.ratescout.ru"
 BASE = f"https://{DOMAIN}"
 RS = "https://ratescout.ru"                         # для перелинковки
 REF = "1116359"                                     # партнёрская метка BestChange (как у ratescout)
+ERID = "2VtzqvK5m96"                                # erid креатива (как у ratescout)
 RAW = "https://raw.githubusercontent.com/sementsul/ratescout/main"
 CSS = f"{RS}/assets/styles.css"                     # тот же интерфейс, что у ratescout
 OG_IMAGE = f"{RS}/apple-touch-icon.png"             # карточка для соцсетей/поиска (бренд-иконка)
@@ -191,11 +192,20 @@ def esc(s):
 
 
 def bc_link(CUR, frm, to):
-    """Реф-ссылка на обмен frm→to в BestChange (как у ratescout)."""
+    """Реф-ссылка на обмен frm→to в BestChange (как у ratescout, с erid)."""
     f, t = CUR.get(frm, {}), CUR.get(to, {})
     if f.get("num") or t.get("num"):
-        return f"https://www.bestchange.ru/index.php?mt=rates&from={f.get('id')}&to={t.get('id')}&p={REF}"
-    return f"https://www.bestchange.ru/{frm}-to-{to}.html?p={REF}"
+        return f"https://www.bestchange.ru/index.php?mt=rates&from={f.get('id')}&to={t.get('id')}&p={REF}&erid={ERID}"
+    return f"https://www.bestchange.ru/{frm}-to-{to}.html?p={REF}&erid={ERID}"
+
+
+def ad_mark(lang):
+    """Подпись у каждого рекламного блока (ст. 18.1 38-ФЗ): пометка + рекламодатель + erid."""
+    if lang == "ru":
+        return ('<p class="updnote admark">Реклама. Рекламодатель: ИП Зуборев Н.С. '
+                'erid: 2VtzqvK5m96</p>')
+    return ('<p class="updnote admark">Advertising. Advertiser: IE Zuborev N.S. '
+            'erid: 2VtzqvK5m96</p>')
 
 
 def compute_shards(RATES, HIST, CUR):
@@ -364,7 +374,7 @@ def head(lang, path, title, desc, extra_ld="", robots="", autoredir=False):
 <body>
 <div id="wrapper">
 <div id="header">
-  <h1 id="logotop"><a href="{PREF[lang]}/"><span class="logo">[⇄]</span> MyMany<span class="tld">.ru</span></a>
+  <h1 id="logotop"><a href="{PREF[lang]}/"><span class="logo">[⇄]</span> MyMany<span class="tld">.ratescout.ru</span></a>
     <small style="color:#a8a8a8">{sub}</small></h1>
   {switch}
 </div>
@@ -378,10 +388,10 @@ def foot(lang):
     if lang == "en":
         disc = (f'<b>MyMany</b> is a <a href="{rs(lang, "/")}" rel="noopener">RateScout</a> arbitrage project. A base of '
                 "profitable currency exchange chains built from "
-                f'<a href="https://www.bestchange.ru/?p={REF}" rel="nofollow sponsored">BestChange</a> exchanger '
+                f'<a href="https://www.bestchange.ru/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a> exchanger '
                 "monitoring, updated automatically. Chain yield is <b>theoretical</b> (best rates at update time): "
                 "reserves, limits, verification, network fees and execution time reduce the result — this is not an "
-                "offer or financial advice.")
+                "offer or financial advice. Advertising. Advertiser: IE Zuborev N.S. erid: 2VtzqvK5m96.")
         links = (
             f'<a href="{rs_home(lang)}" rel="noopener">Exchange on RateScout</a> · '
             f'<a href="{rs(lang, "/napravleniya/")}">Directions</a> · <a href="{rs(lang, "/kursy/")}">Rates</a> · '
@@ -400,9 +410,10 @@ def foot(lang):
     else:
         disc = (f'<b>MyMany</b> — проект <a href="{rs(lang, "/")}" rel="noopener">RateScout</a> по арбитражу. База выгодных '
                 "цепочек обмена валют по данным мониторинга обменников "
-                f'<a href="https://www.bestchange.ru/?p={REF}" rel="nofollow sponsored">BestChange</a>, обновление автоматическое. '
+                f'<a href="https://www.bestchange.ru/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a>, обновление автоматическое. '
                 "Доходность цепочек <b>теоретическая</b> (лучшие курсы на момент обновления): резервы, лимиты, верификация, "
-                "комиссии сети и время исполнения снижают результат — это не оферта и не финансовая рекомендация.")
+                "комиссии сети и время исполнения снижают результат — это не оферта и не финансовая рекомендация. "
+                "Реклама. Рекламодатель: ИП Зуборев Н.С. erid: 2VtzqvK5m96.")
         links = (
             f'<a href="{rs_home(lang)}" rel="noopener">Обменять на RateScout</a> · '
             f'<a href="{rs(lang, "/napravleniya/")}">Направления</a> · <a href="{rs(lang, "/kursy/")}">Курсы</a> · '
@@ -522,6 +533,7 @@ def render_home(lang, shards, stats, stamp, top):
   </div>
   <div id="chWrap" class="dosborder"><table id="chTbl"><thead></thead><tbody></tbody></table></div>
   <div class="ch-more"><button id="chMore">{more_lbl}</button></div>
+  {ad_mark(lang)}
   <p class="mon-note">{note1}</p>
   {entry_html}
   {about_html}
@@ -598,6 +610,7 @@ def render_currency(lang, slug, chains, stamp, CUR):
   <div id="chWrap" class="dosborder"><table id="chTbl"><thead>
     <tr><th>{th[0]}</th><th class="num">{th[1]}</th><th class="num">{th[2]}</th><th class="num">{th[3]}</th><th class="num">{th[4]}</th></tr>
   </thead><tbody>{rows}</tbody></table></div>
+  {ad_mark(lang)}
   <p class="mon-note">{note}</p>
   <div class="ch-disc">{DISC(lang)}</div>
 """
@@ -695,6 +708,7 @@ def render_detail_page(lang):
   <div class="cc-title" style="margin-top:6px">{step_t}</div>
   <div id="stepChart" class="dosborder" style="position:relative"></div>
   <div id="chWrap" class="dosborder"><table class="step-tbl" id="stepTbl"><thead></thead><tbody></tbody></table></div>
+  {ad_mark(lang)}
   <p class="mon-note" id="chMeta"></p>
   <p class="mon-note" id="chLinks"></p>
   <div class="ch-disc">{DISC(lang)}</div>
@@ -938,23 +952,24 @@ def render_404(lang, popular):
 def render_partner(lang):
     """Партнёрская программа BestChange — для MyMany, p=1116359."""
     REF_PARTNER = "1116359"
-    REG_URL = f"https://www.bestchange.ru/partner/account.html?p={REF_PARTNER}"
+    REG_URL = f"https://www.bestchange.ru/partner/account.html?p={REF_PARTNER}&erid={ERID}"
     if lang == "ru":
         title = "Партнёрская программа BestChange — зарабатывайте с MyMany"
         desc = "Зарабатывайте с реферальной программой BestChange через MyMany: 3 уровня, до $5+ с пользователя, выплаты в BTC/ЮMoney/WebMoney/Volet. Регистрация p=1116359."
         h1 = "Партнёрская программа BestChange"
         lead = f'''<p class="lead"><b>MyMany</b> — проект <b>RateScout</b> по арбитражу — подключён к <b>реферальной программе BestChange</b>. Размещайте ссылки с <code>?p={REF_PARTNER}</code> и получайте вознаграждение — бессрочно.</p>
         <div class="conv dosblue dosborder" style="text-align:center;padding:18px">
-          <p><b>Ваша реферальная ссылка:</b> <code>https://www.bestchange.ru/?p={REF_PARTNER}</code></p>
+          <p><b>Ваша реферальная ссылка:</b> <code>https://www.bestchange.ru/?p={REF_PARTNER}&erid={ERID}</code></p>
           <p><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Зарегистрироваться в партнёрке →</a></p>
+          {ad_mark(lang)}
         </div>'''
-        body = f"{lead}<h2>Как это работает</h2><ol class=\"steps\"><li>Регистрируетесь → <code>?p={REF_PARTNER}</code></li><li>Делитесь ссылками (любая страница BestChange, напр. <code>/bitcoin-to-ethereum.html?p={REF_PARTNER}</code>)</li><li>Получаете — cookie 365d, от $1</li></ol><h2>Уровни</h2><p>1-й 30% (+30% AML до 2026), 2-й 30%, 3-й 10%</p><div class=\"conv dosblue dosborder\" style=\"text-align:center\"><a class=\"cta\" href=\"{REG_URL}\" target=\"_blank\" rel=\"nofollow noopener\">Регистрация →</a></div>"
+        body = f"{lead}<h2>Как это работает</h2><ol class=\"steps\"><li>Регистрируетесь → <code>?p={REF_PARTNER}</code></li><li>Делитесь ссылками (любая страница BestChange, напр. <code>/bitcoin-to-ethereum.html?p={REF_PARTNER}</code>)</li><li>Получаете — cookie 365d, от $1</li></ol><h2>Уровни</h2><p>1-й 30% (+30% AML до 2026), 2-й 30%, 3-й 10%</p><div class=\"conv dosblue dosborder\" style=\"text-align:center\"><a class=\"cta\" href=\"{REG_URL}\" target=\"_blank\" rel=\"nofollow noopener\">Регистрация →</a></div>{ad_mark(lang)}"
         crumb = "Партнерам"
     else:
         title = "BestChange affiliate — earn with MyMany"
         desc = "Earn with BestChange affiliate via MyMany: 3 tiers, up to $5+ per user, payouts in BTC. Register p=1116359."
         h1 = "BestChange affiliate program"
-        lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. Share <code>?p={REF_PARTNER}</code> and earn.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>'''
+        lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. Share <code>?p={REF_PARTNER}</code> and earn.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>{ad_mark(lang)}'''
         body = f"{lead}<h2>How it works</h2><ol><li>Register → <code>?p={REF_PARTNER}</code></li><li>Share links</li><li>Earn</li></ol>"
         crumb = "For partners"
     render_page(lang, "partner", title, desc, body, crumb)
