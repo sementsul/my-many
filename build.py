@@ -387,7 +387,7 @@ def foot(lang):
     if lang == "en":
         disc = (f'<b>MyMany</b> is a <a href="{rs(lang, "/")}" rel="noopener">RateScout</a> arbitrage project. A base of '
                 "profitable currency exchange chains built from "
-                f'<a href="https://www.bestchange.ru/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a> exchanger '
+                f'<a href="https://www.bestchange.com/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a> exchanger '
                 "monitoring, updated automatically. Chain yield is <b>theoretical</b> (best rates at update time): "
                 "reserves, limits, verification, network fees and execution time reduce the result — this is not an "
                 "offer or financial advice. Advertising. Advertiser: IE Zuborev N.S. erid: 2VtzqvK5m96.")
@@ -758,8 +758,9 @@ HOME_JS = r"""(function(){
 DETAIL_JS = r"""(function(){
  var LBL=__LBL__;
  var q=new URLSearchParams(location.search), s=q.get("s"), i=parseInt(q.get("i"),10);
- function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
- function fnum(x){return x>=1000?x.toLocaleString(LBL.locale,{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(4);}
+  function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+  function bu(u){return (document.documentElement.lang||"ru").slice(0,2)==="en"?u.replace("www.bestchange.ru","www.bestchange.com"):u;}
+  function fnum(x){return x>=1000?x.toLocaleString(LBL.locale,{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(4);}
  if(!s||isNaN(i)){document.getElementById("chLead").textContent=LBL.notSpec;return;}
  fetch("/data/chains/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(list){
    var c=list[i];
@@ -786,7 +787,7 @@ DETAIL_JS = r"""(function(){
      for(var k=0;k<c.l.length;k++){
        var rate=c.l[k][0], from=c.n[k], to=c.n[k+1], got=amt*rate, vTo=got*(pr[k+1]||0);
        var cum=v0>0?(vTo/v0-1)*100:0;
-       html+="<tr><td>"+(k+1)+". <a href='"+c.l[k][2]+"' target='_blank' rel='nofollow sponsored'>"+
+        html+="<tr><td>"+(k+1)+". <a href='"+bu(c.l[k][2])+"' target='_blank' rel='nofollow sponsored'>"+
          esc(from[1])+" → "+esc(to[1])+"</a></td>"+
          "<td>"+fnum(amt)+" "+esc(from[1])+"</td>"+
          "<td>"+rate.toPrecision(6)+"</td>"+
@@ -951,14 +952,15 @@ def render_404(lang, popular):
 def render_partner(lang):
     """Партнёрская программа BestChange — для MyMany, p=1116359."""
     REF_PARTNER = "1116359"
-    REG_URL = f"https://www.bestchange.ru/partner/account.html?p={REF_PARTNER}&erid={ERID}"
+    BC = "https://www.bestchange.com" if lang == "en" else "https://www.bestchange.ru"
+    REG_URL = f"{BC}/partner/account.html?p={REF_PARTNER}&erid={ERID}"
     if lang == "ru":
         title = "Партнёрская программа BestChange — зарабатывайте с MyMany"
         desc = "Зарабатывайте с реферальной программой BestChange через MyMany: 3 уровня, до $5+ с пользователя, выплаты в BTC/ЮMoney/WebMoney/Volet. Регистрация p=1116359."
         h1 = "Партнёрская программа BestChange"
         lead = f'''<p class="lead"><b>MyMany</b> — проект <b>RateScout</b> по арбитражу — подключён к <b>реферальной программе BestChange</b>. Размещайте ссылки с <code>?p={REF_PARTNER}</code> и получайте вознаграждение — бессрочно.</p>
         <div class="conv dosblue dosborder" style="text-align:center;padding:18px">
-          <p><b>Ваша реферальная ссылка:</b> <code>https://www.bestchange.ru/?p={REF_PARTNER}&erid={ERID}</code></p>
+          <p><b>Ваша реферальная ссылка:</b> <code>{BC}/?p={REF_PARTNER}&erid={ERID}</code></p>
           <p><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Зарегистрироваться в партнёрке →</a></p>
           {ad_mark(lang)}
         </div>'''
