@@ -44,6 +44,7 @@ SHARD_CAP = 200                                     # цепочек на ста
 TOP_CAP = 800                                       # цепочек в монитор на главной
 HIST_TRACK = 800                                    # для скольких топ-цепочек пишем историю доходности
 HIST_PTS = 720                                      # точек истории на цепочку (~30 дней при часовых данных)
+BUILD_ID = "0"                                      # версия данных для cache-busting шардов (?v=); ставится в main() из rates.generated_at
 
 VERIFY = '<meta name="yandex-verification" content="d5dd2e5c5d4ee324" />'
 
@@ -682,7 +683,7 @@ def render_detail_page(lang):
                         "applicationCategory": "FinanceApplication", "offers": {"@type": "Offer", "price": "0"}},
                        ensure_ascii=False)
           + "</script>")
-    js = DETAIL_JS.replace("__LBL__", json.dumps(detail_lbl(lang), ensure_ascii=False))
+    js = DETAIL_JS.replace("__LBL__", json.dumps(detail_lbl(lang), ensure_ascii=False)).replace("__BUILD__", BUILD_ID)
     if lang == "en":
         crumb0, crumb_cur = "Monitor", "chain"
         h1, lead0 = "Exchange chain", "Loading chain…"
@@ -776,7 +777,7 @@ DETAIL_JS = r"""(function(){
   function bu(u){return (document.documentElement.lang||"ru").slice(0,2)==="en"?u+(u.indexOf("?")===-1?"?":"&")+"lang=en":u;}
   function fnum(x){return x>=1000?x.toLocaleString(LBL.locale,{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(4);}
  if(!s||isNaN(i)){document.getElementById("chLead").textContent=LBL.notSpec;return;}
- fetch("/data/chains/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(list){
+ fetch("/data/chains/"+encodeURIComponent(s)+".json?v=__BUILD__").then(function(r){return r.json();}).then(function(list){
    var c=list[i];
    if(!c){document.getElementById("chLead").textContent=LBL.notFound;return;}
    var tks=c.n.map(function(n){return n[1];});
@@ -855,7 +856,7 @@ DETAIL_JS = r"""(function(){
 
  function loadChart(c, s){
    var box=document.getElementById("chChartWrap");
-   fetch("/data/chist/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(hist){
+   fetch("/data/chist/"+encodeURIComponent(s)+".json?v=__BUILD__").then(function(r){return r.json();}).then(function(hist){
      var key=c.n.slice(0,-1).map(function(n){return n[0];}).join("-"), ser=hist[key];  // slug-путь (n[0]), не тикеры
      if(!ser||ser.length<1){
        box.hidden=false;
@@ -1026,6 +1027,8 @@ def main():
     # ── история доходности цепочек: пишется ВПЕРЁД, точка на каждое обновление данных (rates.generated_at) ──
     # (исторических курсов обменников нет — восстановить прошлое нельзя; копим с этого момента)
     gen_ts = int(rates.get("generated_at", 0) or int(now.timestamp()))
+    global BUILD_ID
+    BUILD_ID = str(gen_ts)      # ?v= у шардов: кэш Cloudflare/браузера не отдаёт данные прошлой сборки
     # ключ по SLUG-пути (n[0]), а НЕ по тикерам: тикеры не уникальны (USDC/EUR/... = много slug) → коллизия,
     # график показывал бы чужую цепочку. slug-путь уникален.
     ckey = lambda ch: "-".join(n[0] for n in ch["n"][:-1])
@@ -1037,7 +1040,7 @@ def main():
             tracked.append((ch["p"], ckey(ch), slug, price))
     tracked.sort(key=lambda x: -x[0])
     tracked = tracked[:HIST_TRACK]
-    prev, _ = fetch_json(f"{BASE}/data/chain-history.json", "chain-history.json")  # прошлая история с живого сайта
+    prev, _ = fetch_json(f"{BASE}/data/chain-history.json?v={gen_ts}", "chain-history.json")  # прошлая история с живого сайта (мимо кэша)
     pts = (prev.get("points") if isinstance(prev, dict) else {}) or {}
     keep, by_slug_hist = dict(pts), defaultdict(dict)
     # retain previous history for chains not in current top (fix accumulation)
