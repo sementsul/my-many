@@ -28,7 +28,8 @@ DATA = os.path.join(ROOT, "data")
 DOMAIN = "my-many.ratescout.ru"
 BASE = f"https://{DOMAIN}"
 RS = "https://ratescout.ru"                         # для перелинковки
-REF = "1116359"                                     # партнёрская метка BestChange (как у ratescout)
+ROUTER = f"{BASE}/go/bestchange"                    # редирект-роутер партнёрских ссылок (Cloudflare Worker, маршрут по этому же хосту)
+REF = "1116359"                                     # партнёрская метка BestChange (живёт ТОЛЬКО в воркере)
 ERID = "2VtzqvK5m96"                                # erid креатива (как у ratescout)
 RAW = "https://raw.githubusercontent.com/sementsul/ratescout/main"
 CSS = f"{RS}/assets/styles.css"                     # тот же интерфейс, что у ratescout
@@ -192,11 +193,15 @@ def esc(s):
 
 
 def bc_link(CUR, frm, to):
-    """Реф-ссылка на обмен frm→to в BestChange (как у ratescout, с erid)."""
+    """Ссылка на обмен frm→to — через наш роутер, БЕЗ партнёрской метки в URL.
+
+    Метку ?p= и erid подставляет Cloudflare Worker (my-many.ratescout.ru/go/bestchange) и только
+    живому браузеру: в HTML и в шардах data/chains/*.json адресов bestchange.* больше нет,
+    поэтому парсер, собравший ссылки, кликает в пустоту."""
     f, t = CUR.get(frm, {}), CUR.get(to, {})
     if f.get("num") or t.get("num"):
-        return f"https://www.bestchange.ru/index.php?mt=rates&from={f.get('id')}&to={t.get('id')}&p={REF}&erid={ERID}"
-    return f"https://www.bestchange.ru/{frm}-to-{to}.html?p={REF}&erid={ERID}"
+        return f"{ROUTER}?fid={f.get('id') or ''}&tid={t.get('id') or ''}"
+    return f"{ROUTER}?from={frm}&to={to}"
 
 
 def ad_mark(lang):
@@ -387,7 +392,7 @@ def foot(lang):
     if lang == "en":
         disc = (f'<b>MyMany</b> is a <a href="{rs(lang, "/")}" rel="noopener">RateScout</a> arbitrage project. A base of '
                 "profitable currency exchange chains built from "
-                f'<a href="https://www.bestchange.com/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a> exchanger '
+                f'<a href="{ROUTER}?lang=en" rel="nofollow sponsored">BestChange</a> exchanger '
                 "monitoring, updated automatically. Chain yield is <b>theoretical</b> (best rates at update time): "
                 "reserves, limits, verification, network fees and execution time reduce the result — this is not an "
                 "offer or financial advice. Advertising. Advertiser: IE Zuborev N.S. erid: 2VtzqvK5m96.")
@@ -409,7 +414,7 @@ def foot(lang):
     else:
         disc = (f'<b>MyMany</b> — проект <a href="{rs(lang, "/")}" rel="noopener">RateScout</a> по арбитражу. База выгодных '
                 "цепочек обмена валют по данным мониторинга обменников "
-                f'<a href="https://www.bestchange.ru/?p={REF}&erid={ERID}" rel="nofollow sponsored">BestChange</a>, обновление автоматическое. '
+                f'<a href="{ROUTER}" rel="nofollow sponsored">BestChange</a>, обновление автоматическое. '
                 "Доходность цепочек <b>теоретическая</b> (лучшие курсы на момент обновления): резервы, лимиты, верификация, "
                 "комиссии сети и время исполнения снижают результат — это не оферта и не финансовая рекомендация. "
                 "Реклама. Рекламодатель: ИП Зуборев Н.С. erid: 2VtzqvK5m96.")
@@ -759,7 +764,7 @@ DETAIL_JS = r"""(function(){
  var LBL=__LBL__;
  var q=new URLSearchParams(location.search), s=q.get("s"), i=parseInt(q.get("i"),10);
   function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
-  function bu(u){return (document.documentElement.lang||"ru").slice(0,2)==="en"?u.replace("www.bestchange.ru","www.bestchange.com"):u;}
+  function bu(u){return (document.documentElement.lang||"ru").slice(0,2)==="en"?u+(u.indexOf("?")===-1?"?":"&")+"lang=en":u;}
   function fnum(x){return x>=1000?x.toLocaleString(LBL.locale,{maximumFractionDigits:2}):x>=1?x.toFixed(4):x.toPrecision(4);}
  if(!s||isNaN(i)){document.getElementById("chLead").textContent=LBL.notSpec;return;}
  fetch("/data/chains/"+encodeURIComponent(s)+".json").then(function(r){return r.json();}).then(function(list){
@@ -950,28 +955,27 @@ def render_404(lang, popular):
 
 
 def render_partner(lang):
-    """Партнёрская программа BestChange — для MyMany, p=1116359."""
-    REF_PARTNER = "1116359"
-    BC = "https://www.bestchange.com" if lang == "en" else "https://www.bestchange.ru"
-    REG_URL = f"{BC}/partner/account.html?p={REF_PARTNER}&erid={ERID}"
+    """Партнёрская программа BestChange — все ссылки идут через роутер /go/bestchange."""
+    L = "en" if lang == "en" else "ru"
+    REG_URL = f"{ROUTER}?mode=partner&lang={L}"
     if lang == "ru":
         title = "Партнёрская программа BestChange — зарабатывайте с MyMany"
-        desc = "Зарабатывайте с реферальной программой BestChange через MyMany: 3 уровня, до $5+ с пользователя, выплаты в BTC/ЮMoney/WebMoney/Volet. Регистрация p=1116359."
+        desc = "Зарабатывайте с реферальной программой BestChange через MyMany: 3 уровня, до $5+ с пользователя, выплаты в BTC/ЮMoney/WebMoney/Volet."
         h1 = "Партнёрская программа BestChange"
-        lead = f'''<p class="lead"><b>MyMany</b> — проект <b>RateScout</b> по арбитражу — подключён к <b>реферальной программе BestChange</b>. Размещайте ссылки с <code>?p={REF_PARTNER}</code> и получайте вознаграждение — бессрочно.</p>
+        lead = f'''<p class="lead"><b>MyMany</b> — проект <b>RateScout</b> по арбитражу — подключён к <b>реферальной программе BestChange</b>. Все ссылки на обмен идут через наш роутер <code>/go/bestchange</code>: партнёрская метка подставляется на сервере и в HTML не попадает.</p>
         <div class="conv dosblue dosborder" style="text-align:center;padding:18px">
-          <p><b>Ваша реферальная ссылка:</b> <code>{BC}/?p={REF_PARTNER}&erid={ERID}</code></p>
+          <p><b>Ссылка на обмен:</b> <code>{ROUTER}?from=bitcoin&amp;to=ethereum</code></p>
           <p><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Зарегистрироваться в партнёрке →</a></p>
           {ad_mark(lang)}
         </div>'''
-        body = f"{lead}<h2>Как это работает</h2><ol class=\"steps\"><li>Регистрируетесь → <code>?p={REF_PARTNER}</code></li><li>Делитесь ссылками (любая страница BestChange, напр. <code>/bitcoin-to-ethereum.html?p={REF_PARTNER}</code>)</li><li>Получаете — cookie 365d, от $1</li></ol><h2>Уровни</h2><p>1-й 30% (+30% AML до 2026), 2-й 30%, 3-й 10%</p><div class=\"conv dosblue dosborder\" style=\"text-align:center\"><a class=\"cta\" href=\"{REG_URL}\" target=\"_blank\" rel=\"nofollow noopener\">Регистрация →</a></div>{ad_mark(lang)}"
+        body = f"{lead}<h2>Как это работает</h2><ol class=\"steps\"><li>Регистрируетесь в партнёрке BestChange</li><li>Делитесь ссылками вида <code>/go/bestchange?from=bitcoin&amp;to=ethereum</code></li><li>Получаете — cookie 365d, от $1</li></ol><h2>Уровни</h2><p>1-й 30% (+30% AML до 2026), 2-й 30%, 3-й 10%</p><div class=\"conv dosblue dosborder\" style=\"text-align:center\"><a class=\"cta\" href=\"{REG_URL}\" target=\"_blank\" rel=\"nofollow noopener\">Регистрация →</a></div>{ad_mark(lang)}"
         crumb = "Партнерам"
     else:
         title = "BestChange affiliate — earn with MyMany"
-        desc = "Earn with BestChange affiliate via MyMany: 3 tiers, up to $5+ per user, payouts in BTC. Register p=1116359."
+        desc = "Earn with BestChange affiliate via MyMany: 3 tiers, up to $5+ per user, payouts in BTC."
         h1 = "BestChange affiliate program"
-        lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. Share <code>?p={REF_PARTNER}</code> and earn.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>{ad_mark(lang)}'''
-        body = f"{lead}<h2>How it works</h2><ol><li>Register → <code>?p={REF_PARTNER}</code></li><li>Share links</li><li>Earn</li></ol>"
+        lead = f'''<p class="lead"><b>MyMany</b> — RateScout arbitrage — connected to <b>BestChange affiliate</b>. All exchange links go through our router <code>/go/bestchange</code>: the affiliate tag is added server-side and never appears in the HTML.</p><div class="conv dosblue dosborder" style="text-align:center"><a class="cta" href="{REG_URL}" target="_blank" rel="nofollow noopener">Join →</a></div>{ad_mark(lang)}'''
+        body = f"{lead}<h2>How it works</h2><ol><li>Register in the BestChange affiliate program</li><li>Share links like <code>/go/bestchange?from=bitcoin&amp;to=ethereum</code></li><li>Earn</li></ol>"
         crumb = "For partners"
     nav = f'<nav class="crumbs"><a href="{PREF[lang]}/">{"Monitor" if lang == "en" else "Монитор"}</a> / {crumb}</nav>'
     return head(lang, "/partner/", title, desc) + nav + f"<h1>{h1}</h1>" + body + foot(lang)
