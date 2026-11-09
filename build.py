@@ -171,18 +171,27 @@ def DISC(lang):
 
 
 def fetch_json(url, cache_name):
-    """GET JSON с фолбэком на кэш data/<cache_name> (если raw-GitHub недоступен на сборке)."""
+    """GET JSON с фолбэком на кэш data/<cache_name> (если источник недоступен на сборке).
+
+    🔴 User-Agent — браузерный: rates.json отдаёт Cloudflare (Bot Fight Mode) и на
+    «MyMany/2.0»/«python-urllib» отвечает 403. Проверено: Chrome-UA → 200, остальные → 403.
+    """
     path = os.path.join(DATA, cache_name)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "MyMany/2.0", "Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=40) as r:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+        })
+        with urllib.request.urlopen(req, timeout=60) as r:
             d = json.load(r)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False)
         return d, True
     except Exception as e:                          # noqa: BLE001
-        print(f"  raw-GitHub недоступен для {cache_name} ({e}); беру кэш")
+        print(f"  источник недоступен для {cache_name} ({e}); беру кэш")
         if os.path.exists(path):
             return json.load(open(path, encoding="utf-8")), False
         return None, False
